@@ -7,6 +7,7 @@ pipeline {
         CRED_ID     = 'yahyadockerhub'   // DockerHub credentials ID
         GIT_BACKUP  = 'yahyagithub'      // GitHub credentials ID (لو هتعمل Backup)
         BACKUP_REPO = 'https://github.com/yourusername/cv-backups.git'
+        APP_PORT    = '8090'             // البورت الجديد للتطبيق
     }
 
     stages {
@@ -38,7 +39,6 @@ pipeline {
                     CONTAINER_NAME=cv-container
                     BACKUP_DIR=/tmp/cv-backup-$(date +%F-%H-%M)
 
-                    # لو في كونتينر قديم بنفس الاسم اعمل له Backup وبعدين امسحه
                     if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
                         mkdir -p $BACKUP_DIR
                         docker export $(docker ps -q -f name=$CONTAINER_NAME) > $BACKUP_DIR/container-backup.tar
@@ -54,21 +54,20 @@ pipeline {
                 sh '''
                     CONTAINER_NAME=cv-container
 
-                    # لو البورت 8080 مستخدم من أي كونتينر تاني امسحه
-                    if docker ps --format '{{.ID}} {{.Ports}}' | grep -q '0.0.0.0:8080->'; then
-                        OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep '0.0.0.0:8080->' | awk '{print $1}')
-                        echo "Port 8080 in use by $OLD ... stopping it."
+                    # لو البورت مستخدم من أي كونتينر تاني امسحه
+                    if docker ps --format '{{.ID}} {{.Ports}}' | grep -q "0.0.0.0:${APP_PORT}->"; then
+                        OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep "0.0.0.0:${APP_PORT}->" | awk '{print $1}')
+                        echo "Port ${APP_PORT} in use by $OLD ... stopping it."
                         docker stop $OLD || true
                         docker rm $OLD || true
                     fi
 
-                    # شغل النسخة الجديدة
-                    docker run -d --name $CONTAINER_NAME -p 8080:80 $IMAGE_NAME:latest
+                    # شغل النسخة الجديدة على البورت الجديد
+                    docker run -d --name $CONTAINER_NAME -p ${APP_PORT}:80 $IMAGE_NAME:latest
                 '''
             }
         }
 
-        // Stage احتياطي لو حابب تعمل push للـ backup repo (اختياري)
         stage('Push Backup to GitHub') {
             when {
                 expression { return false } // خليها true لو عايز تشغل الباكاب
