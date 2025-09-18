@@ -61,54 +61,56 @@ pipeline {
             }
         }
 
-            stage('Push Backup to GitHub') {
-    when {
-        expression { return true } // شغل الباكاب دايمًا
-    }
-    steps {
-        withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
-                                         usernameVariable: 'GIT_USER',
-                                         passwordVariable: 'GIT_PASS')]) {
-            sh '''
-                set -e
-                TIMESTAMP=$(date +%F-%H-%M)
-                BACKUP_DIR=$(ls -dt /tmp/cv-backup-* | head -1)
+        stage('Push Backup to GitHub') {
+            when {
+                expression { return true } // شغل الباكاب دايمًا
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                                                 usernameVariable: 'GIT_USER',
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    sh '''
+                        set -e
+                        TIMESTAMP=$(date +%F-%H-%M)
+                        BACKUP_DIR=$(ls -dt /tmp/cv-backup-* | head -1)
 
-                if [ -d "$BACKUP_DIR" ]; then
-                    # امسح أي نسخة قديمة قبل الـ clone
-                    rm -rf /tmp/cv-backups
+                        if [ -d "$BACKUP_DIR" ]; then
+                            ARCHIVE_NAME="backup-$TIMESTAMP.tar.gz"
+                            tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
 
-                    # اعمل clone باستخدام الـ token
-                    git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
-                    cd /tmp/cv-backups
+                            # امسح أي نسخة قديمة قبل الـ clone
+                            rm -rf /tmp/cv-backups
 
-                    # إعداد هوية الجيت
-                    git config user.email "yahia@example.com"
-                    git config user.name "Yahia Jenkins"
+                            # اعمل clone باستخدام الـ token
+                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
+                            cd /tmp/cv-backups
 
-                    # تأكد إننا على main
-                    if ! git rev-parse --verify main >/dev/null 2>&1; then
-                        git checkout -b main
-                    else
-                        git checkout main
-                    fi
+                            # إعداد هوية الجيت
+                            git config user.email "yahia@example.com"
+                            git config user.name "Yahia Jenkins"
 
-                    # نسخ الباكاب
-                    cp -r $BACKUP_DIR/* .
+                            # تأكد إننا على main
+                            if ! git rev-parse --verify main >/dev/null 2>&1; then
+                                git checkout -b main
+                            else
+                                git checkout main
+                            fi
 
-                    # رفع الباكاب
-                    git add .
-                    git commit -m "Backup on $TIMESTAMP" || echo "No changes to commit"
-                    git push origin main
-                else
-                    echo "No backup found!"
-                fi
-            '''
+                            # اعمل فولدر بتاريخ الباكاب وخزن الملف المضغوط فيه
+                            mkdir -p backups/$TIMESTAMP
+                            mv /tmp/$ARCHIVE_NAME backups/$TIMESTAMP/
+
+                            # رفع الباكاب
+                            git add .
+                            git commit -m "Backup on $TIMESTAMP" || echo "No changes to commit"
+                            git push origin main
+                        else
+                            echo "No backup found!"
+                        fi
+                    '''
+                }
+            }
         }
-    }
-}
-
-
     }
 
     post {
