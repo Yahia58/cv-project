@@ -49,24 +49,32 @@ pipeline {
             }
         }
 
-        stage('Deploy New Version') {
-            steps {
-                sh '''
-                    CONTAINER_NAME=cv-container
+stage('Deploy New Version') {
+    steps {
+        sh '''
+            CONTAINER_NAME=cv-container
 
-                    # لو البورت مستخدم من أي كونتينر تاني امسحه
-                    if docker ps --format '{{.ID}} {{.Ports}}' | grep -q "0.0.0.0:${APP_PORT}->"; then
-                        OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep "0.0.0.0:${APP_PORT}->" | awk '{print $1}')
-                        echo "Port ${APP_PORT} in use by $OLD ... stopping it."
-                        docker stop $OLD || true
-                        docker rm $OLD || true
-                    fi
+            # لو فيه Container قديم بنفس الاسم (شغال أو متوقف) امسحه
+            if [ "$(docker ps -a -q -f name=$CONTAINER_NAME)" ]; then
+                echo "Removing old container: $CONTAINER_NAME"
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+            fi
 
-                    # شغل النسخة الجديدة على البورت الجديد
-                    docker run -d --name $CONTAINER_NAME -p ${APP_PORT}:80 $IMAGE_NAME:latest
-                '''
-            }
-        }
+            # لو البورت مستخدم من أي Container تاني
+            if docker ps --format '{{.ID}} {{.Ports}}' | grep -q "0.0.0.0:${APP_PORT}->"; then
+                OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep "0.0.0.0:${APP_PORT}->" | awk '{print $1}')
+                echo "Port ${APP_PORT} in use by $OLD ... stopping it."
+                docker stop $OLD || true
+                docker rm $OLD || true
+            fi
+
+            # شغل النسخة الجديدة
+            docker run -d --name $CONTAINER_NAME -p ${APP_PORT}:80 $IMAGE_NAME:latest
+        '''
+    }
+}
+
 
         stage('Push Backup to GitHub') {
             when {
