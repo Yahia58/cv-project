@@ -61,30 +61,47 @@ pipeline {
             }
         }
 
-        stage('Push Backup to GitHub') {
+                stage('Push Backup to GitHub') {
+            when {
+                expression { return true } // شغل الباكاب
+            }
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                                                 usernameVariable: 'GIT_USER',
+                                                 passwordVariable: 'GIT_PASS')]) {
                     sh '''
                         TIMESTAMP=$(date +%F-%H-%M)
-                        BACKUP_DIR=$(ls -dt /tmp/cv-backup-* 2>/dev/null | head -1)
+                        BACKUP_DIR=$(ls -dt /tmp/cv-backup-* | head -1)
 
                         if [ -d "$BACKUP_DIR" ]; then
                             cd /tmp
                             if [ ! -d cv-backups ]; then
-                                git clone https://$GIT_USER:$GIT_PASS@github.com/Yahia58/cv-backups.git
+                                git clone https://${GIT_USER}:${GIT_PASS}@${BACKUP_REPO} cv-backups
                             fi
+
                             cd cv-backups
+
+                            # إعداد هوية الجيت
+                            git config user.email "yahia@example.com"
+                            git config user.name "Yahia Jenkins"
+
+                            # لو الريبو لسه فاضي ومفيش branch، نعمل واحد
+                            if ! git rev-parse --verify main >/dev/null 2>&1; then
+                                git checkout -b main
+                            else
+                                git checkout main
+                            fi
+
                             cp -r $BACKUP_DIR/* .
                             git add .
-                            git commit -m "Backup on $TIMESTAMP" || true
+                            git commit -m "Backup on $TIMESTAMP" || echo "No changes to commit"
                             git push origin main
-                        else
-                            echo "No backup found to push."
                         fi
                     '''
                 }
             }
         }
+
     }
 
     post {
