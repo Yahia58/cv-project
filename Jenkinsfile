@@ -8,6 +8,10 @@ pipeline {
         BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
     }
 
+    triggers {
+        githubPush()   // ✅ ده اللي يخلي Jenkins يشتغل تلقائي عند أي push
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -51,7 +55,6 @@ pipeline {
             steps {
                 sh '''
                     CONTAINER_NAME=cv-container
-                    # Remove old container if exists
                     if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
                         docker rm -f $CONTAINER_NAME
                     fi
@@ -62,9 +65,6 @@ pipeline {
         }
 
         stage('Push Backup to GitHub') {
-            when {
-                expression { return true } // شغل الباكاب دايمًا
-            }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
                                                  usernameVariable: 'GIT_USER',
@@ -75,33 +75,22 @@ pipeline {
                         BACKUP_DIR=$(ls -dt /tmp/cv-backup-* | head -1)
 
                         if [ -d "$BACKUP_DIR" ]; then
-                            ARCHIVE_NAME="backup-$TIMESTAMP.tar.gz"
-                            tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
-
-                            # امسح أي نسخة قديمة قبل الـ clone
                             rm -rf /tmp/cv-backups
-
-                            # اعمل clone باستخدام الـ token
                             git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
                             cd /tmp/cv-backups
 
-                            # إعداد هوية الجيت
                             git config user.email "yahia@example.com"
                             git config user.name "Yahia Jenkins"
 
-                            # تأكد إننا على main
                             if ! git rev-parse --verify main >/dev/null 2>&1; then
                                 git checkout -b main
                             else
                                 git checkout main
                             fi
 
-                            # اعمل فولدر بتاريخ الباكاب وخزن الملف المضغوط فيه
-                            mkdir -p backups/$TIMESTAMP
-                            mv /tmp/$ARCHIVE_NAME backups/$TIMESTAMP/
-
-                            # رفع الباكاب
-                            git add .
+                            ZIP_FILE="backup-$TIMESTAMP.zip"
+                            zip -r $ZIP_FILE $BACKUP_DIR
+                            git add $ZIP_FILE
                             git commit -m "Backup on $TIMESTAMP" || echo "No changes to commit"
                             git push origin main
                         else
@@ -115,7 +104,7 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished. Backup stage executed (if backup existed)."
+            echo "Pipeline finished."
         }
     }
 }
