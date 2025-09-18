@@ -4,7 +4,7 @@ pipeline {
         DOCKERHUB   = 'yahya080'
         IMAGE_NAME  = "${DOCKERHUB}/cv"
         CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
-        GIT_BACKUP  = 'yahyagithub'    // GitHub credentials ID
+        GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
         BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
     }
 
