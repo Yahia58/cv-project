@@ -1,31 +1,27 @@
 pipeline {
     agent any
-
     environment {
         DOCKERHUB   = 'yahya080'
         IMAGE_NAME  = "${DOCKERHUB}/cv"
-        CRED_ID     = 'yahyadockerhub'   // DockerHub credentials ID
-        GIT_BACKUP  = 'yahyagithub'      // GitHub credentials ID (لو هتعمل Backup)
-        BACKUP_REPO = 'https://github.com/yourusername/cv-backups.git'
-        APP_PORT    = '8090'             // البورت الجديد للتطبيق
+        CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
+        GIT_BACKUP  = 'yahyagithub'    // GitHub credentials ID
+        BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/Yahia58/cv-project.git',
-                    credentialsId: "${GIT_BACKUP}"
+                    credentialsId: "${GIT_BACKUP}",
+                    url: 'https://github.com/Yahia58/cv-project.git'
             }
         }
 
         stage('Build & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${CRED_ID}",
-                                                 usernameVariable: 'DOCKER_USER',
-                                                 passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: "${CRED_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                         docker build -t $IMAGE_NAME:latest .
                         docker push $IMAGE_NAME:latest
                     '''
@@ -37,65 +33,63 @@ pipeline {
             steps {
                 sh '''
                     CONTAINER_NAME=cv-container
-                    BACKUP_DIR=/tmp/cv-backup-$(date +%F-%H-%M)
+                    TIMESTAMP=$(date +%F-%H-%M)
+                    BACKUP_DIR=/tmp/cv-backup-$TIMESTAMP
 
                     if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
                         mkdir -p $BACKUP_DIR
-                        docker export $(docker ps -q -f name=$CONTAINER_NAME) > $BACKUP_DIR/container-backup.tar
-                        docker stop $CONTAINER_NAME || true
-                        docker rm $CONTAINER_NAME || true
+                        docker cp $CONTAINER_NAME:/usr/share/nginx/html/index.html $BACKUP_DIR/index.html || true
+                        echo "Backup created at $BACKUP_DIR"
+                    else
+                        echo "No old container found, skipping backup."
                     fi
                 '''
             }
         }
 
-stage('Deploy New Version') {
-    steps {
-        sh '''
-            CONTAINER_NAME=cv-container
+        stage('Deploy New Version') {
+            steps {
+                sh '''
+                    CONTAINER_NAME=cv-container
+                    # Remove old container if exists
+                    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+                        docker rm -f $CONTAINER_NAME
+                    fi
 
-            # لو فيه Container قديم بنفس الاسم (شغال أو متوقف) امسحه
-            if [ "$(docker ps -a -q -f name=$CONTAINER_NAME)" ]; then
-                echo "Removing old container: $CONTAINER_NAME"
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
-            fi
-
-            # لو البورت مستخدم من أي Container تاني
-            if docker ps --format '{{.ID}} {{.Ports}}' | grep -q "0.0.0.0:${APP_PORT}->"; then
-                OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep "0.0.0.0:${APP_PORT}->" | awk '{print $1}')
-                echo "Port ${APP_PORT} in use by $OLD ... stopping it."
-                docker stop $OLD || true
-                docker rm $OLD || true
-            fi
-
-            # شغل النسخة الجديدة
-            docker run -d --name $CONTAINER_NAME -p ${APP_PORT}:80 $IMAGE_NAME:latest
-        '''
-    }
-}
-
+                    docker run -d --name $CONTAINER_NAME -p 8090:80 $IMAGE_NAME:latest
+                '''
+            }
+        }
 
         stage('Push Backup to GitHub') {
-            when {
-                expression { return false } // خليها true لو عايز تشغل الباكاب
-            }
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
-                                                 usernameVariable: 'GIT_USER',
-                                                 passwordVariable: 'GIT_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                     sh '''
-                        cd /tmp
-                        BACKUP_DIR=cv-backup-$(date +%F-%H-%M)
-                        git clone https://${GIT_USER}:${GIT_PASS}@${BACKUP_REPO} repo
-                        cp -r $BACKUP_DIR/* repo/
-                        cd repo
-                        git add .
-                        git commit -m "Backup on $(date)"
-                        git push
+                        TIMESTAMP=$(date +%F-%H-%M)
+                        BACKUP_DIR=$(ls -dt /tmp/cv-backup-* 2>/dev/null | head -1)
+
+                        if [ -d "$BACKUP_DIR" ]; then
+                            cd /tmp
+                            if [ ! -d cv-backups ]; then
+                                git clone https://$GIT_USER:$GIT_PASS@github.com/Yahia58/cv-backups.git
+                            fi
+                            cd cv-backups
+                            cp -r $BACKUP_DIR/* .
+                            git add .
+                            git commit -m "Backup on $TIMESTAMP" || true
+                            git push origin main
+                        else
+                            echo "No backup found to push."
+                        fi
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished. Backup stage executed (if backup existed)."
         }
     }
 }
