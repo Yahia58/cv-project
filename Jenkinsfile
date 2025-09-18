@@ -37,11 +37,13 @@ pipeline {
                 sh '''
                     CONTAINER_NAME=cv-container
                     BACKUP_DIR=/tmp/cv-backup-$(date +%F-%H-%M)
+
+                    # لو في كونتينر قديم بنفس الاسم اعمل له Backup وبعدين امسحه
                     if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
                         mkdir -p $BACKUP_DIR
                         docker export $(docker ps -q -f name=$CONTAINER_NAME) > $BACKUP_DIR/container-backup.tar
-                        docker stop $CONTAINER_NAME
-                        docker rm $CONTAINER_NAME
+                        docker stop $CONTAINER_NAME || true
+                        docker rm $CONTAINER_NAME || true
                     fi
                 '''
             }
@@ -50,7 +52,18 @@ pipeline {
         stage('Deploy New Version') {
             steps {
                 sh '''
-                    docker run -d --name cv-container -p 8080:80 $IMAGE_NAME:latest
+                    CONTAINER_NAME=cv-container
+
+                    # لو البورت 8080 مستخدم من أي كونتينر تاني امسحه
+                    if docker ps --format '{{.ID}} {{.Ports}}' | grep -q '0.0.0.0:8080->'; then
+                        OLD=$(docker ps --format '{{.ID}} {{.Ports}}' | grep '0.0.0.0:8080->' | awk '{print $1}')
+                        echo "Port 8080 in use by $OLD ... stopping it."
+                        docker stop $OLD || true
+                        docker rm $OLD || true
+                    fi
+
+                    # شغل النسخة الجديدة
+                    docker run -d --name $CONTAINER_NAME -p 8080:80 $IMAGE_NAME:latest
                 '''
             }
         }
