@@ -9,7 +9,7 @@ pipeline {
     }
 
     triggers {
-        githubPush()   // ✅ ده اللي يخلي Jenkins يشتغل تلقائي عند أي push
+        githubPush()   // ✅ أي push في GitHub repo هيشغل الـ pipeline تلقائي
     }
 
     stages {
@@ -55,6 +55,7 @@ pipeline {
             steps {
                 sh '''
                     CONTAINER_NAME=cv-container
+                    # Remove old container if exists
                     if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
                         docker rm -f $CONTAINER_NAME
                     fi
@@ -65,6 +66,9 @@ pipeline {
         }
 
         stage('Push Backup to GitHub') {
+            when {
+                expression { return true } // شغل الباكاب دايمًا
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
                                                  usernameVariable: 'GIT_USER',
@@ -75,6 +79,9 @@ pipeline {
                         BACKUP_DIR=$(ls -dt /tmp/cv-backup-* | head -1)
 
                         if [ -d "$BACKUP_DIR" ]; then
+                            ARCHIVE_NAME="backup-$TIMESTAMP.tar.gz"
+                            tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
+
                             rm -rf /tmp/cv-backups
                             git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
                             cd /tmp/cv-backups
@@ -88,9 +95,10 @@ pipeline {
                                 git checkout main
                             fi
 
-                            ZIP_FILE="backup-$TIMESTAMP.zip"
-                            zip -r $ZIP_FILE $BACKUP_DIR
-                            git add $ZIP_FILE
+                            mkdir -p backups/$TIMESTAMP
+                            mv /tmp/$ARCHIVE_NAME backups/$TIMESTAMP/
+
+                            git add .
                             git commit -m "Backup on $TIMESTAMP" || echo "No changes to commit"
                             git push origin main
                         else
@@ -104,7 +112,7 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished."
+            echo "Pipeline finished. Backup stage executed (if backup existed)."
         }
     }
 }
