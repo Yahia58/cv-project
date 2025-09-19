@@ -4,8 +4,8 @@ pipeline {
         IMAGE_NAME  = "cv"                    // بس اسم الصورة
         DOCKER_CRED = 'yahyadockerhub'        // DockerHub credentials ID
         GIT_CRED    = 'yahiagithub'           // GitHub credentials ID
-        BACKUP_REPO = 'https://github.com/<your-repo>/cv-backups.git'
-        SOURCE_REPO = 'https://github.com/<your-repo>/cv-project.git'
+        BACKUP_REPO = 'https://github.com/GIT_CRED/cv-backups.git'
+        SOURCE_REPO = 'https://github.com/GIT_CRED/cv-project.git'
     }
 
     triggers {
