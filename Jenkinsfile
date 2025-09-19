@@ -1,33 +1,35 @@
 pipeline {
     agent any
     environment {
-        DOCKERHUB   = 'yahya080'
-        IMAGE_NAME  = "${DOCKERHUB}/cv"
-        CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
-        GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
-        BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
+        IMAGE_NAME  = "cv"                    // بس اسم الصورة
+        DOCKER_CRED = 'yahyadockerhub'        // DockerHub credentials ID
+        GIT_CRED    = 'yahiagithub'           // GitHub credentials ID
+        BACKUP_REPO = 'https://github.com/<your-repo>/cv-backups.git'
+        SOURCE_REPO = 'https://github.com/<your-repo>/cv-project.git'
     }
 
     triggers {
-        githubPush()   // ✅ أي push في GitHub repo هيشغل الـ pipeline تلقائي
+        githubPush()
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    credentialsId: "${GIT_BACKUP}",
-                    url: 'https://github.com/Yahia58/cv-project.git'
+                    credentialsId: "${GIT_CRED}",
+                    url: "${SOURCE_REPO}"
             }
         }
 
         stage('Build & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${CRED_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CRED}",
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker build -t $IMAGE_NAME:latest .
-                        docker push $IMAGE_NAME:latest
+                        docker build -t $DOCKER_USER/$IMAGE_NAME:latest .
+                        docker push $DOCKER_USER/$IMAGE_NAME:latest
                     '''
                 }
             }
@@ -53,24 +55,24 @@ pipeline {
 
         stage('Deploy New Version') {
             steps {
-                sh '''
-                    CONTAINER_NAME=cv-container
-                    # Remove old container if exists
-                    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-                        docker rm -f $CONTAINER_NAME
-                    fi
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CRED}",
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        CONTAINER_NAME=cv-container
+                        if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+                            docker rm -f $CONTAINER_NAME
+                        fi
 
-                    docker run -d --name $CONTAINER_NAME -p 8090:80 $IMAGE_NAME:latest
-                '''
+                        docker run -d --name $CONTAINER_NAME -p 8090:80 $DOCKER_USER/$IMAGE_NAME:latest
+                    '''
+                }
             }
         }
 
         stage('Push Backup to GitHub') {
-            when {
-                expression { return true } // شغل الباكاب دايمًا
-            }
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                withCredentials([usernamePassword(credentialsId: "${GIT_CRED}",
                                                  usernameVariable: 'GIT_USER',
                                                  passwordVariable: 'GIT_PASS')]) {
                     sh '''
@@ -83,18 +85,13 @@ pipeline {
                             tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
 
                             rm -rf /tmp/cv-backups
-                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
+                            git clone https://${GIT_USER}:${GIT_PASS}@${BACKUP_REPO#https://} /tmp/cv-backups
                             cd /tmp/cv-backups
 
-                            git config user.email "yahia@example.com"
-                            git config user.name "Yahia Jenkins"
+                            git config user.email "jenkins@example.com"
+                            git config user.name "Jenkins Pipeline"
 
-                            if ! git rev-parse --verify main >/dev/null 2>&1; then
-                                git checkout -b main
-                            else
-                                git checkout main
-                            fi
-
+                            git checkout -B main
                             mkdir -p backups/$TIMESTAMP
                             mv /tmp/$ARCHIVE_NAME backups/$TIMESTAMP/
 
