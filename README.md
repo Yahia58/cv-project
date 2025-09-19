@@ -1,6 +1,6 @@
-# 🚀 CV Project – Jenkins CI/CD with Docker & GitHub Backup
+# CV Project – Jenkins CI/CD with Docker & GitHub Backup
 
-## 📌 Overview
+##  Overview
 
 This project demonstrates a **CI/CD pipeline using Jenkins, Docker, and GitHub**.
 It automates the process of:
