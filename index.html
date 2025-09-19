@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Test Env</title>
+  <title>Yahya Abdelazim | Portfolio</title>
   <style>
     body { 
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #1e3c72, #2a5298);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #141e30, #243b55);
       color: #fff;
       text-align: center;
       display: flex;
@@ -17,11 +17,12 @@
       min-height: 100vh;
     }
     header {
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.05);
       padding: 1rem;
-      font-size: 1.5rem;
+      font-size: 1.7rem;
       font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      letter-spacing: 1px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.4);
     }
     main {
       flex: 1;
@@ -33,42 +34,71 @@
     }
     h1 {
       font-size: 3rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #ff9800, #ffc107);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: #ddd;
+      margin-bottom: 2rem;
     }
     p {
-      font-size: 1.25rem;
-      margin-bottom: 2rem;
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+      color: #ccc;
     }
     .btn {
       background: #ff9800;
       color: #fff;
       border: none;
-      padding: 0.75rem 1.5rem;
+      padding: 0.8rem 1.6rem;
       font-size: 1rem;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: all 0.3s ease;
       text-decoration: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      margin: 0.5rem;
+      display: inline-block;
     }
     .btn:hover {
       background: #e68900;
+      transform: translateY(-2px);
+    }
+    .links {
+      margin-top: 1rem;
     }
     footer {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.8rem;
       font-size: 0.9rem;
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
 <body>
-  <header>🚀 My Test Environment</header>
+  <header>🚀 Yahya Abdelazim</header>
   <main>
-    <h1>Welcome to My Test v2</h1>
-    <p>This is running inside <strong>Docker</strong>.</p>
-    <a href="https://www.docker.com/" target="_blank" class="btn">Learn More</a>
+    <h1>Welcome to My Portfolio</h1>
+    <h2>System Administrator | DevOps Enthusiast</h2>
+    <p>
+      I’m Yahya, a passionate <strong>System Administrator</strong> with experience in Linux, 
+      Windows Server, Docker, Kubernetes, Jenkins, Terraform, Ansible, and AWS.  
+      This project is running inside <strong>Docker</strong> and deployed via <strong>Jenkins Pipeline</strong>.
+    </p>
+    <div class="links">
+      <a href="https://github.com/Yahia58" target="_blank" class="btn">🔗 GitHub</a>
+      <a href="https://www.linkedin.com/in/yahya-abdelazim" target="_blank" class="btn">💼 LinkedIn</a>
+      <a href="mailto:yahia@example.com" class="btn">📧 Email Me</a>
+    </div>
   </main>
   <footer>
-    &copy; 2025 My Test Env. All rights reserved.
+    &copy; 2025 Yahya Abdelazim. All rights reserved.
   </footer>
 </body>
 </html>
