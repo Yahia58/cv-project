@@ -1,11 +1,16 @@
 pipeline {
     agent any
     environment {
-        DOCKERHUB   = 'yahya080'
-        IMAGE_NAME  = "${DOCKERHUB}/cv"
-        CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
+     //   DOCKERHUB   = 'yahya080'
+         CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
         GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
-        BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
+      
+        withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",usernameVariable: 'GIT_USER',passwordVariable: 'GIT_PASS')]) 
+        withCredentials([usernamePassword(credentialsId: "${CRED_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')])
+       // IMAGE_NAME  = "${DOCKERHUB}/cv"
+         IMAGE_NAME  = "${DOCKER_USER}/cv"
+       
+        BACKUP_REPO = 'https://github.com/GIT_USER/cv-backups.git'
     }
 
     triggers {
