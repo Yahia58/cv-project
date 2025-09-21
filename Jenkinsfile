@@ -1,11 +1,13 @@
 pipeline {
     agent any
     environment {
-         DOCKERHUB   = 'yahya080'
+         DOCKERHUB   = credentials('dockerusername')
+        
+         GitUsername  = credentials('gitusername')
          CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
          GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
          IMAGE_NAME  = "${DOCKERHUB}/cv"   
-        BACKUP_REPO = 'https://github.com/Yahia58/cv-backups.git'
+        BACKUP_REPO = 'https://github.com/$GitUsername/cv-backups.git'
     }
 
     triggers {
@@ -17,7 +19,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: "${GIT_BACKUP}",
-                    url: 'https://github.com/Yahia58/cv-project.git'
+                    url: 'https://github.com/$GitUsername/cv-project.git'
             }
         }
 
@@ -83,7 +85,7 @@ pipeline {
                             tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
 
                             rm -rf /tmp/cv-backups
-                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/Yahia58/cv-backups.git /tmp/cv-backups
+                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/$GitUsername/cv-backups.git /tmp/cv-backups
                             cd /tmp/cv-backups
 
                             git config user.email "yahia@example.com"
