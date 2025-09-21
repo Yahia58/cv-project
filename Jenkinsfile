@@ -18,10 +18,12 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                 script {
                 def repoUrl = "https://github.com/${env.GITUSERNAME}/cv-project.git"
                 git branch: 'main',
                 credentialsId: "${GIT_BACKUP}",
                 url: repoUrl 
+            }
             }
         }
 
