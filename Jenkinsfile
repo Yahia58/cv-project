@@ -1,14 +1,9 @@
 pipeline {
     agent any
+
     environment {
-         DOCKERHUB   = credentials('dockerusername')
-        
-         GITUSERNAME  = credentials('gitusername')
-         CRED_ID     = 'yahyadockerhub' // DockerHub credentials ID
-         GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
-         IMAGE_NAME  = "${DOCKERHUB}/cv"   
-        BACKUP_REPO = 'https://github.com/${GITUSERNAME}/cv-backups.git'
-      
+        CRED_ID     = 'yahyadockerhub'   // DockerHub credentials ID
+        GIT_BACKUP  = 'yahiagithub'      // GitHub credentials ID
     }
 
     triggers {
@@ -18,23 +13,32 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                 script {
-                def repoUrl = "https://github.com/${env.GITUSERNAME}/cv-project.git"
-                git branch: 'main',
-                credentialsId: "${GIT_BACKUP}",
-                url: repoUrl 
-            }
+                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                                                 usernameVariable: 'GIT_USER',
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    script {
+                        def repoUrl = "https://github.com/${GIT_USER}/cv-project.git"
+                        git branch: 'main',
+                            credentialsId: "${GIT_BACKUP}",
+                            url: repoUrl
+                    }
+                }
             }
         }
 
         stage('Build & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${CRED_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker build -t $IMAGE_NAME:latest .
-                        docker push $IMAGE_NAME:latest
-                    '''
+                withCredentials([usernamePassword(credentialsId: "${CRED_ID}",
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        def imageName = "${DOCKER_USER}/cv:latest"
+                        sh """
+                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                            docker build -t ${imageName} .
+                            docker push ${imageName}
+                        """
+                    }
                 }
             }
         }
@@ -59,15 +63,22 @@ pipeline {
 
         stage('Deploy New Version') {
             steps {
-                sh '''
-                    CONTAINER_NAME=cv-container
-                    # Remove old container if exists
-                    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-                        docker rm -f $CONTAINER_NAME
-                    fi
+                withCredentials([usernamePassword(credentialsId: "${CRED_ID}",
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        def imageName = "${DOCKER_USER}/cv:latest"
+                        sh """
+                            CONTAINER_NAME=cv-container
+                            # Remove old container if exists
+                            if [ "\$(docker ps -aq -f name=\$CONTAINER_NAME)" ]; then
+                                docker rm -f \$CONTAINER_NAME
+                            fi
 
-                    docker run -d --name $CONTAINER_NAME -p 8090:80 $IMAGE_NAME:latest
-                '''
+                            docker run -d --name \$CONTAINER_NAME -p 8090:80 ${imageName}
+                        """
+                    }
+                }
             }
         }
 
