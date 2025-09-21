@@ -1,4 +1,10 @@
-# CV Project – Jenkins CI/CD with Docker & GitHub Backup
+#  CI/CD Pipeline with Jenkins, Docker & GitHub Backup
+
+![Jenkins](https://img.shields.io/badge/Jenkins-CI/CD-blue)
+![Docker](https://img.shields.io/badge/Docker-Containerization-blue)
+![GitHub](https://img.shields.io/badge/GitHub-Backup-lightgrey)
+
+---
 
 ##  Overview
 
