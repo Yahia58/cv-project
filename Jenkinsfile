@@ -85,7 +85,7 @@ pipeline {
                             tar -czf /tmp/$ARCHIVE_NAME -C $BACKUP_DIR .
 
                             rm -rf /tmp/cv-backups
-                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/${GITUSERNAME}/cv-backups.git /tmp/cv-backups
+                            git clone https://${GIT_USER}:${GIT_PASS}@github.com/${GIT_USER}/cv-backups.git /tmp/cv-backups
                             cd /tmp/cv-backups
 
                             git config user.email "yahia@example.com"
