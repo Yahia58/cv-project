@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        CRED_ID     = 'yahyadockerhub'   // DockerHub credentials ID
-        GIT_BACKUP  = 'yahiagithub'      // GitHub credentials ID
+        DOCHER_ID     = 'yahyadockerhub'   // DockerHub credentials ID
+        GIT_ID  = 'yahiagithub'      // GitHub credentials ID
     }
 
     triggers {
@@ -13,13 +13,13 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                withCredentials([usernamePassword(credentialsId: "${GIT_ID}",
                                                  usernameVariable: 'GIT_USER',
                                                  passwordVariable: 'GIT_PASS')]) {
                     script {
                         def repoUrl = "https://github.com/${GIT_USER}/cv-project.git"
                         git branch: 'main',
-                            credentialsId: "${GIT_BACKUP}",
+                            credentialsId: "${GIT_ID}",
                             url: repoUrl
                     }
                 }
@@ -28,7 +28,7 @@ pipeline {
 
         stage('Build & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${CRED_ID}",
+                withCredentials([usernamePassword(credentialsId: "${DOCHER_ID}",
                                                  usernameVariable: 'DOCKER_USER',
                                                  passwordVariable: 'DOCKER_PASS')]) {
                     script {
@@ -63,7 +63,7 @@ pipeline {
 
         stage('Deploy New Version') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${CRED_ID}",
+                withCredentials([usernamePassword(credentialsId: "${DOCHER_ID}",
                                                  usernameVariable: 'DOCKER_USER',
                                                  passwordVariable: 'DOCKER_PASS')]) {
                     script {
@@ -87,7 +87,7 @@ pipeline {
                 expression { return true } // شغل الباكاب دايمًا
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_BACKUP}",
+                withCredentials([usernamePassword(credentialsId: "${GIT_ID}",
                                                  usernameVariable: 'GIT_USER',
                                                  passwordVariable: 'GIT_PASS')]) {
                     sh '''
