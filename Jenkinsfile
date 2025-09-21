@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        DOCHER_ID     = 'yahyadockerhub'   // DockerHub credentials ID
-        GIT_ID  = 'yahiagithub'      // GitHub credentials ID
+        DOCHER_ID  = 'yahyadockerhub'   // DockerHub credentials ID
+        GIT_ID     = 'yahiagithub'      // GitHub credentials ID
     }
 
     triggers {
-        githubPush()   // ✅ أي push في GitHub repo هيشغل الـ pipeline تلقائي
+        githubPush()   // Trigger pipeline automatically on GitHub push
     }
 
     stages {
@@ -84,7 +84,7 @@ pipeline {
 
         stage('Push Backup to GitHub') {
             when {
-                expression { return true } // شغل الباكاب دايمًا
+                expression { return true } // Always run backup stage
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${GIT_ID}",
