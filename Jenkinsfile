@@ -8,6 +8,7 @@ pipeline {
          GIT_BACKUP  = 'yahiagithub'    // GitHub credentials ID
          IMAGE_NAME  = "${DOCKERHUB}/cv"   
         BACKUP_REPO = 'https://github.com/${GITUSERNAME}/cv-backups.git'
+        PROJECT_REPO = 'https://github.com/${GITUSERNAME}/cv-project.git'
     }
 
     triggers {
@@ -19,7 +20,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: "${GIT_BACKUP}",
-                    url: 'https://github.com/${GITUSERNAME}/cv-project.git'
+                    url:"${PROJECT_REPO}" 
             }
         }
 
